@@ -32,6 +32,36 @@ HTTP/1.1 200 OK
 */
 func main() {
 	for i, cli := range os.Args {
+		// Check Server Addr
+		server := os.Getenv("FASTBIN_ADDR")
+		if server == "" {
+			server = "http://localhost:3000"
+
+		}
+		// Check if stdin first.
+		stat, err := os.Stdin.Stat()
+		if err != nil {
+			slog.Error("Failed to get stdin stat: " + err.Error())
+			os.Exit(1)
+		}
+		if (stat.Mode() & os.ModeCharDevice) == 0 {
+			slog.Debug("Reading from stdin")
+			fileContent, err := os.ReadFile("/dev/stdin")
+			if err != nil {
+				slog.Error("Read from stdin failed: " + err.Error())
+				os.Exit(1)
+			}
+			key, secret, serverAddr, err := upload.UploadFile(fileContent, server)
+			if err != nil {
+				slog.Error("Upload failed: " + err.Error())
+				os.Exit(1)
+			}
+			fmt.Println("Upload Success!")
+			fmt.Println(serverAddr + "/" + key)
+			fmt.Println("Secret: " + secret)
+			os.Exit(0)
+		}
+
 		if cli == "-h" || cli == "--help" || len(os.Args) == 1 {
 			fmt.Println("	fastbin")
 			fmt.Println("		Yet Another CLI Client for https://github.com/jozsefsallai/fastbin-rewritten")
@@ -66,36 +96,6 @@ func main() {
 				Level: slog.LevelInfo,
 			}))
 			slog.SetDefault(logger)
-		}
-		// Check Server Addr
-		server := os.Getenv("FASTBIN_ADDR")
-		if server == "" {
-			server = "http://localhost:3000"
-
-		}
-
-		// Check if stdin
-		stat, err := os.Stdin.Stat()
-		if err != nil {
-			slog.Error("Failed to get stdin stat: " + err.Error())
-			os.Exit(1)
-		}
-		if (stat.Mode() & os.ModeCharDevice) == 0 {
-			slog.Debug("Reading from stdin")
-			fileContent, err := os.ReadFile("/dev/stdin")
-			if err != nil {
-				slog.Error("Read from stdin failed: " + err.Error())
-				os.Exit(1)
-			}
-			key, secret, serverAddr, err := upload.UploadFile(fileContent, server)
-			if err != nil {
-				slog.Error("Upload failed: " + err.Error())
-				os.Exit(1)
-			}
-			fmt.Println("Upload Success!")
-			fmt.Println(serverAddr + "/" + key)
-			fmt.Println("Secret: " + secret)
-			os.Exit(0)
 		}
 
 		// Clone a snippet with vipe
